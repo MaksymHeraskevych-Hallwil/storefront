@@ -1,0 +1,26 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+// У Prisma 7 конекшн-стрінг більше не живе тут: для Migrate він у
+// prisma.config.ts, а для рантайм-клієнта — в driver adapter
+// (src/lib/prisma.ts). Тут лишається тільки тип бази.
+datasource db {
+  provider = "postgresql"
+}
+
+// Персонал, що логіниться в адмінку. Покупці (Customer) — окрема
+// модель, з'явиться на Етапі 4 разом із замовленнями.
+enum Role {
+  ADMIN
+  STAFF
+}
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  role         Role     @default(STAFF)
+  name         String
+  createdAt    DateTime @default(now())
+}

@@ -15,19 +15,17 @@ StoreFront Blueprint, обговорена окремо перед старто�
 
 ## Розробка
 
-Поки що піднімається тільки база даних — бекенд і фронтенд з'являться на
-наступних етапах.
-
 ```bash
-docker compose up -d
+docker compose up -d   # Postgres на localhost:5433 (див. .env.example)
+cd backend && npm install && npm run dev   # див. backend/README.md
 ```
 
-Postgres буде доступний на `localhost:5432` (див. `.env.example`).
+Фронтенд з'явиться на Етапі 3.
 
 ## Дорожня карта
 
 - [x] **0 — Ініціалізація.** Репозиторій, структура frontend/ + backend/, docker-compose з Postgres.
-- [ ] **1 — Фундамент бекенду.** Express, Prisma, модель User, логін + JWT, role-middleware.
+- [x] **1 — Фундамент бекенду.** Express, Prisma 7, модель User, логін + JWT (httpOnly-кука), role-middleware, юніт-тести.
 - [ ] **2 — Домен товарів.** Product / ProductVariant / ProductImage, CRUD API, тести.
 - [ ] **3 — Фундамент адмінки.** Next.js + Polaris, навігація, логін, список і картка товару.
 - [ ] **4 — Домен замовлень.** Order / OrderItem, зміна статусу з перевіркою переходів.
