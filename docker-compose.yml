@@ -1,0 +1,23 @@
+services:
+  postgres:
+    image: postgres:18-alpine
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: storefront
+    # На відміну від my-blog, порт відкритий на хост: бекенду ще немає
+    # в docker-compose (він з'явиться і буде dockerized на Етапі 8),
+    # тож поки що Prisma підключається з локально запущеного backend/
+    # напряму через localhost:5432.
+    ports:
+      - '5432:5432'
+    volumes:
+      - pgdata:/var/lib/postgresql
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U postgres -d storefront']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  pgdata:
