@@ -17,22 +17,37 @@ Express-застосунок і НЕ піднімає сервер (щоб те�
 
 ## Локальний запуск
 
+Бекенд повністю в Docker — не `npm run dev` на хості. Причина: у Postgres
+немає опублікованого порту (див. "Порти" нижче), тож із хоста до нього
+однаково не достукатись напряму.
+
 ```bash
-cp .env.example .env          # раз, значення вже збігаються з ../docker-compose.yml
-cd .. && docker compose up -d # підняти Postgres
-cd backend
-npm install
-npx prisma migrate dev        # накотити міграції
-npm run prisma:seed           # створити першого ADMIN-користувача
-npm run dev                   # http://localhost:5051
+cd ..                                        # корінь storefront/
+docker compose up -d --build
+docker compose exec backend npm run prisma:seed   # разово: перший ADMIN
 ```
+
+Далі все через **http://localhost** (порт 80, nginx) — не `:5051`, він
+не опублікований. Код монтується з хоста через volume, тож правки в
+`backend/src` підхоплює nodemon усередині контейнера без перезбірки.
+Перезбирати образ (`--build`) треба тільки при зміні `package.json`.
 
 Дефолтний адмін після сіда: `admin@storefront.dev` / `admin12345`
 (тільки для локальної розробки — див. `prisma/seed.ts`).
 
-**Порт бази — 5433, не 5432.** На машині розробника вже може бути
-нативний (не-Docker) Postgres на стандартному порту; щоб уникнути
-конфлікту, контейнер мапиться на `5433:5432` (див. `../docker-compose.yml`).
+Нову міграцію після зміни `prisma/schema.prisma` створюють так:
+
+```bash
+docker compose exec backend npx prisma migrate dev --name <назва>
+```
+
+## Порти
+
+Ні Postgres, ні сам бекенд не мають опублікованого порту — тільки
+`expose` всередині docker-мережі (`postgres:5432`, `backend:5051` —
+видно з інших контейнерів, недоступно з хоста чи мережі). Єдиний вхід
+іззовні — nginx на `80`, який проксіює `/api/*` на бекенд. Перевірити
+самому: `nc -z localhost 5051` має сказати "connection refused".
 
 ## Автентифікація
 
@@ -53,7 +68,7 @@ JWT лежить у httpOnly-кукі `token` (не в `localStorage` і не в
 ## Тести
 
 ```bash
-npm test
+docker compose exec backend npm test
 ```
 
 Юніт-тести без бази: zod-схеми й auth-middleware (мокані `req`/`res`,

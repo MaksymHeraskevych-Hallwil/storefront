@@ -5,14 +5,11 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: password
       POSTGRES_DB: storefront
-    # На відміну від my-blog, порт відкритий на хост: бекенду ще немає
-    # в docker-compose (він з'явиться і буде dockerized на Етапі 8),
-    # тож поки що Prisma підключається з локально запущеного backend/
-    # напряму через localhost:5433.
-    # Порт 5433, а не стандартний 5432 — на цій машині 5432 вже займає
-    # нативний (не-Docker) Postgres іншого проєкту.
-    ports:
-      - '5433:5432'
+    # Жодного опублікованого порту: база доступна лише всередині
+    # docker-мережі за іменем `postgres:5432`. Ні з хоста, ні з
+    # локальної мережі до неї не достукатись — тільки з backend.
+    expose:
+      - '5432'
     volumes:
       - pgdata:/var/lib/postgresql
     healthcheck:
@@ -20,6 +17,44 @@ services:
       interval: 5s
       timeout: 5s
       retries: 10
+
+  backend:
+    build: ./backend
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      # Ім'я хоста тут — `postgres`, а не localhost: усередині
+      # docker-мережі сервіси бачать один одного за іменем сервісу.
+      DATABASE_URL: 'postgresql://postgres:password@postgres:5432/storefront?schema=public'
+      # Секрети dev-only, як і в my-blog: не справжні, тому їх можна
+      # тримати прямо в docker-compose.yml. Реальні прийдуть на проді.
+      JWT_SECRET: 'dev-secret-change-me'
+      PORT: 5051
+    volumes:
+      # Код монтуємо з хоста — так nodemon усередині контейнера бачить
+      # зміни одразу, без перезбірки образу.
+      - ./backend:/app
+      # Але node_modules — свій, контейнерний: інакше локальний
+      # (macOS) node_modules перекрив би той, що зібрав Linux-образ.
+      - /app/node_modules
+    # Порт теж не опублікований — бекенд доступний тільки через nginx.
+    expose:
+      - '5051'
+    # generate/migrate deploy виконуємо тут, а не в Dockerfile: до
+    # старту контейнера DATABASE_URL ще не існує (він приходить саме
+    # з цього environment-блока). Нову міграцію після зміни схеми
+    # створюють вручну: docker compose exec backend npx prisma migrate dev.
+    command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
+
+  nginx:
+    build: ./nginx
+    depends_on:
+      - backend
+    # Єдиний сервіс з портом, відкритим на хост — усі запити,
+    # включно з майбутнім фронтендом (Етап 3), ідуть тільки сюди.
+    ports:
+      - '80:80'
 
 volumes:
   pgdata:

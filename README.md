@@ -11,21 +11,25 @@ StoreFront Blueprint, обговорена окремо перед старто�
 
 - **frontend/** — Next.js (App Router) + [Shopify Polaris](https://polaris.shopify.com/) для UI адмінки
 - **backend/** — Express + Prisma + PostgreSQL, REST API
+- **nginx/** — єдина публічна точка входу; все інше (БД, кеш, бекенд, фронтенд) без опублікованих портів
 - **сховище файлів** — S3-сумісне (MinIO локально, Cloudflare R2 у проді) — з Етапу 7
 
 ## Розробка
 
 ```bash
-docker compose up -d   # Postgres на localhost:5433 (див. .env.example)
-cd backend && npm install && npm run dev   # див. backend/README.md
+docker compose up -d --build
+docker compose exec backend npm run prisma:seed   # разово: перший ADMIN
 ```
 
-Фронтенд з'явиться на Етапі 3.
+Все йде через **http://localhost** (nginx, порт 80) — `/api/*` на бекенд,
+решта тимчасово теж на бекенд, поки не з'явився фронтенд (Етап 3).
+Жоден інший порт назовні не відкритий: Postgres і бекенд доступні лише
+всередині docker-мережі. Деталі — у `backend/README.md`.
 
 ## Дорожня карта
 
-- [x] **0 — Ініціалізація.** Репозиторій, структура frontend/ + backend/, docker-compose з Postgres.
-- [x] **1 — Фундамент бекенду.** Express, Prisma 7, модель User, логін + JWT (httpOnly-кука), role-middleware, юніт-тести.
+- [x] **0 — Ініціалізація.** Репозиторій, структура frontend/ + backend/ + nginx/, docker-compose з Postgres (без опублікованих портів).
+- [x] **1 — Фундамент бекенду.** Express у Docker (hot-reload), Prisma 7, модель User, логін + JWT (httpOnly-кука), role-middleware, юніт-тести — все за nginx на порту 80.
 - [ ] **2 — Домен товарів.** Product / ProductVariant / ProductImage, CRUD API, тести.
 - [ ] **3 — Фундамент адмінки.** Next.js + Polaris, навігація, логін, список і картка товару.
 - [ ] **4 — Домен замовлень.** Order / OrderItem, зміна статусу з перевіркою переходів.
@@ -33,3 +37,11 @@ cd backend && npm install && npm run dev   # див. backend/README.md
 - [ ] **6 — Аналітика.** Ендпоінти агрегації, дашборд.
 - [ ] **7 — Медіа.** Завантаження зображень товару в S3-сумісне сховище.
 - [ ] **8 — Стабілізація.** Тести, CI, повний docker-compose, деплой.
+
+## Політика портів
+
+Жоден внутрішній сервіс (БД, майбутній Redis-кеш, бекенд, фронтенд)
+не публікує порт на хост — тільки `expose` всередині docker-мережі,
+підключення по паролю. Єдиний опублікований порт — `80` у nginx.
+Це стосується й Redis, коли він з'явиться: за замовчуванням теж без
+`ports`, тільки `expose`.
