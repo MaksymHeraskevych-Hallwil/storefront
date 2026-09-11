@@ -17,11 +17,13 @@ StoreFront Blueprint, обговорена окремо перед старто�
 - **Автентифікація.** `POST /api/auth/login`, `POST /api/auth/logout`,
   `GET /api/auth/me`. JWT у httpOnly-кукі, ролі `ADMIN`/`STAFF`,
   `requireAuth`/`requireRole` middleware.
-- **Товари.** Моделі `Product`, `ProductVariant`, `ProductImage`.
-  CRUD для товарів (список з пагінацією й фільтром за статусом,
-  створення, деталі, оновлення, архівування — soft delete, тільки
-  `ADMIN`) і для варіантів (унікальний SKU з обробкою конфлікту).
-- **Тести.** 25 юніт-тестів (zod-схеми, auth-middleware, контролер
+- **Товари.** Моделі `Product`, `ProductVariant`, `ProductImage`,
+  `ProductCustomField`. CRUD для товарів (список з пагінацією, фільтром
+  за статусом і пошуком за назвою, створення, деталі, оновлення,
+  архівування — soft delete, тільки `ADMIN`), для варіантів (унікальний
+  SKU з обробкою конфлікту) і для довільних кастомних полів
+  (Shopify-подібні metafields — ключ унікальний у межах товару).
+- **Тести.** 36 юніт-тестів (zod-схеми, auth-middleware, контролер
   товарів із замоканим Prisma-клієнтом) — усі проходять.
 - **Дефолтний адмін після сіда:** `admin@storefront.dev` / `admin12345`
   (лише для локальної розробки).

@@ -5,13 +5,17 @@ import prisma from '../lib/prisma'
 // ── Товари ────────────────────────────────────────────────────────
 
 export const listProducts = async (req: Request, res: Response) => {
-  const { page, limit, status } = req.validatedQuery as {
+  const { page, limit, status, search } = req.validatedQuery as {
     page: number
     limit: number
     status?: 'DRAFT' | 'ACTIVE' | 'ARCHIVED'
+    search?: string
   }
 
-  const where = status ? { status } : {}
+  const where: Prisma.ProductWhereInput = {
+    ...(status ? { status } : {}),
+    ...(search ? { title: { contains: search, mode: 'insensitive' } } : {}),
+  }
 
   const [items, total] = await Promise.all([
     prisma.product.findMany({
@@ -38,6 +42,7 @@ export const getProduct = async (req: Request, res: Response) => {
     include: {
       variants: { orderBy: { createdAt: 'asc' } },
       images: { orderBy: { position: 'asc' } },
+      customFields: { orderBy: { key: 'asc' } },
     },
   })
 
@@ -131,6 +136,61 @@ export const deleteVariant = async (req: Request, res: Response) => {
   res.status(204).send()
 }
 
+// ── Кастомні поля товару ──────────────────────────────────────────
+// Довільні пари ключ-значення на товарі (розмір, матеріал, гарантія...),
+// без потреби міняти схему під кожне нове поле — на кшталт Shopify
+// metafields. Ключ унікальний у межах товару (@@unique в схемі).
+
+export const listCustomFields = async (req: Request, res: Response) => {
+  const fields = await prisma.productCustomField.findMany({
+    where: { productId: req.params.id as string },
+    orderBy: { key: 'asc' },
+  })
+  res.json({ data: fields })
+}
+
+export const addCustomField = async (req: Request, res: Response) => {
+  const product = await prisma.product.findUnique({ where: { id: req.params.id as string } })
+  if (!product) {
+    return res.status(404).json({ error: 'Товар не знайдено' })
+  }
+
+  try {
+    const field = await prisma.productCustomField.create({
+      data: { ...req.body, productId: product.id },
+    })
+    res.status(201).json({ field })
+  } catch (error) {
+    if (isUniqueConstraintError(error, 'productId_key')) {
+      return res.status(409).json({ error: 'Таке поле в цього товару вже є' })
+    }
+    throw error
+  }
+}
+
+export const updateCustomField = async (req: Request, res: Response) => {
+  const field = await findOwnedCustomField(req.params.id as string, req.params.fieldId as string)
+  if (!field) {
+    return res.status(404).json({ error: 'Поле не знайдено' })
+  }
+
+  const updated = await prisma.productCustomField.update({
+    where: { id: field.id },
+    data: req.body,
+  })
+  res.json({ field: updated })
+}
+
+export const deleteCustomField = async (req: Request, res: Response) => {
+  const field = await findOwnedCustomField(req.params.id as string, req.params.fieldId as string)
+  if (!field) {
+    return res.status(404).json({ error: 'Поле не знайдено' })
+  }
+
+  await prisma.productCustomField.delete({ where: { id: field.id } })
+  res.status(204).send()
+}
+
 // ── Хелпери ───────────────────────────────────────────────────────
 
 // variantId — унікальний сам по собі, але цей запит ще й підтверджує,
@@ -138,6 +198,11 @@ export const deleteVariant = async (req: Request, res: Response) => {
 const findOwnedVariant = async (productId: string, variantId: string) => {
   const variant = await prisma.productVariant.findUnique({ where: { id: variantId } })
   return variant && variant.productId === productId ? variant : null
+}
+
+const findOwnedCustomField = async (productId: string, fieldId: string) => {
+  const field = await prisma.productCustomField.findUnique({ where: { id: fieldId } })
+  return field && field.productId === productId ? field : null
 }
 
 const isNotFoundError = (error: unknown) =>

@@ -41,6 +41,14 @@ docker compose exec backend npm run prisma:seed   # разово: перший A
 docker compose exec backend npx prisma migrate dev --name <назва>
 ```
 
+**Пастка:** `nodemon` за замовчуванням ігнорує `node_modules` — після
+`prisma generate` (він пише саме туди) сервер сам не перезапуститься.
+Якщо після зміни схеми бекенд відповідає 502 чи старими типами:
+
+```bash
+docker compose restart backend
+```
+
 ## Порти
 
 Ні Postgres, ні сам бекенд не мають опублікованого порту — тільки
@@ -64,14 +72,18 @@ JWT лежить у httpOnly-кукі `token` (не в `localStorage` і не в
 | `POST /api/auth/login`                 | Public        | Вхід, видає httpOnly-куку з JWT          |
 | `POST /api/auth/logout`                | Staff         | Видаляє куку                            |
 | `GET /api/auth/me`                     | Staff         | Поточний користувач (потрібна кука)      |
-| `GET /api/products`                    | Staff         | Список, пагінація (`page`/`limit`), фільтр `status` |
+| `GET /api/products`                    | Staff         | Список, пагінація (`page`/`limit`), фільтр `status`, пошук `search` за назвою |
 | `POST /api/products`                   | Staff         | Створити товар                          |
-| `GET /api/products/:id`                | Staff         | Товар з варіантами й зображеннями        |
+| `GET /api/products/:id`                | Staff         | Товар з варіантами, зображеннями й кастомними полями |
 | `PATCH /api/products/:id`              | Staff         | Оновити поля товару                     |
 | `DELETE /api/products/:id`             | **Admin**     | Архівувати (`status: ARCHIVED`, не DELETE-рядок) |
 | `POST /api/products/:id/variants`      | Staff         | Додати варіант (SKU унікальний)         |
 | `PATCH /api/products/:id/variants/:variantId` | Staff  | Оновити варіант                         |
 | `DELETE /api/products/:id/variants/:variantId` | Staff | Видалити варіант                        |
+| `GET /api/products/:id/custom-fields`  | Staff         | Список кастомних полів товару            |
+| `POST /api/products/:id/custom-fields` | Staff         | Додати поле (`key` унікальний у межах товару) |
+| `PATCH /api/products/:id/custom-fields/:fieldId` | Staff | Оновити значення поля                  |
+| `DELETE /api/products/:id/custom-fields/:fieldId` | Staff | Видалити поле                         |
 
 ## Тести
 

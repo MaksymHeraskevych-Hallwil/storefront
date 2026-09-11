@@ -39,6 +39,7 @@ model Product {
   vendor      String?
   variants    ProductVariant[]
   images      ProductImage[]
+  customFields ProductCustomField[]
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
 }
@@ -64,5 +65,21 @@ model ProductImage {
   url       String
   position  Int    @default(0)
 
+  @@index([productId])
+}
+
+// Довільні пари "ключ-значення" на товарі — на кшталт Shopify metafields
+// ("матеріал", "гарантія, міс." тощо), без потреби міняти схему під
+// кожне нове поле.
+model ProductCustomField {
+  id        String  @id @default(cuid())
+  productId String
+  product   Product @relation(fields: [productId], references: [id])
+  key       String
+  value     String
+
+  // Один і той самий ключ на товарі двічі — це вже не "custom field",
+  // а плутанина; unique заразом дає БД-рівневу гарантію.
+  @@unique([productId, key])
   @@index([productId])
 }

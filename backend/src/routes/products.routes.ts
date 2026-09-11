@@ -8,17 +8,24 @@ import {
   addVariant,
   updateVariant,
   deleteVariant,
+  listCustomFields,
+  addCustomField,
+  updateCustomField,
+  deleteCustomField,
 } from '../controllers/products.controller'
 import { requireAuth, requireRole } from '../middlewares/auth.middleware'
 import validate from '../middlewares/validate.middleware'
 import {
   idParamSchema,
   productVariantParamsSchema,
+  customFieldParamsSchema,
   productListQuerySchema,
   createProductSchema,
   updateProductSchema,
   createVariantSchema,
   updateVariantSchema,
+  createCustomFieldSchema,
+  updateCustomFieldSchema,
 } from '../schemas'
 
 const router = express.Router()
@@ -64,6 +71,28 @@ router.delete(
   requireRole('ADMIN', 'STAFF'),
   validate(productVariantParamsSchema, 'params'),
   deleteVariant
+)
+
+router.get('/:id/custom-fields', validate(idParamSchema, 'params'), listCustomFields)
+router.post(
+  '/:id/custom-fields',
+  requireRole('ADMIN', 'STAFF'),
+  validate(idParamSchema, 'params'),
+  validate(createCustomFieldSchema),
+  addCustomField
+)
+router.patch(
+  '/:id/custom-fields/:fieldId',
+  requireRole('ADMIN', 'STAFF'),
+  validate(customFieldParamsSchema, 'params'),
+  validate(updateCustomFieldSchema),
+  updateCustomField
+)
+router.delete(
+  '/:id/custom-fields/:fieldId',
+  requireRole('ADMIN', 'STAFF'),
+  validate(customFieldParamsSchema, 'params'),
+  deleteCustomField
 )
 
 export default router

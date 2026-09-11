@@ -1,9 +1,11 @@
 import {
   loginSchema,
   idParamSchema,
+  productListQuerySchema,
   createProductSchema,
   updateProductSchema,
   createVariantSchema,
+  createCustomFieldSchema,
 } from '../src/schemas'
 
 describe('loginSchema', () => {
@@ -73,5 +75,38 @@ describe('createVariantSchema', () => {
 
   it('відхиляє price <= 0', () => {
     expect(createVariantSchema.safeParse({ sku: 'CUP-001', price: 0 }).success).toBe(false)
+  })
+})
+
+describe('productListQuerySchema', () => {
+  it('search — опціональний, за замовчуванням не заданий', () => {
+    const result = productListQuerySchema.safeParse({})
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.search).toBeUndefined()
+    }
+  })
+
+  it('приймає search разом зі status', () => {
+    const result = productListQuerySchema.safeParse({ status: 'ACTIVE', search: 'чашка' })
+    expect(result.success).toBe(true)
+  })
+})
+
+describe('createCustomFieldSchema', () => {
+  it('приймає ключ у форматі snake_case', () => {
+    expect(
+      createCustomFieldSchema.safeParse({ key: 'warranty_months', value: '12' }).success
+    ).toBe(true)
+  })
+
+  it('відхиляє ключ із пробілами чи кирилицею', () => {
+    expect(createCustomFieldSchema.safeParse({ key: 'матеріал виробу', value: 'x' }).success).toBe(
+      false
+    )
+  })
+
+  it('відхиляє порожнє значення', () => {
+    expect(createCustomFieldSchema.safeParse({ key: 'material', value: '' }).success).toBe(false)
   })
 })

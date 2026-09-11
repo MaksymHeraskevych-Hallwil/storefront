@@ -34,6 +34,8 @@ const productStatusEnum = z.enum(['DRAFT', 'ACTIVE', 'ARCHIVED'])
 
 export const productListQuerySchema = paginationSchema.extend({
   status: productStatusEnum.optional(),
+  // Пошук за назвою — регістронезалежний "contains" у контролері.
+  search: z.string().trim().min(1).max(200).optional(),
 })
 
 export const createProductSchema = z.object({
@@ -61,3 +63,23 @@ export const updateVariantSchema = createVariantSchema.partial().refine(
   (data) => Object.keys(data).length > 0,
   { message: 'Треба передати хоча б одне поле для оновлення' }
 )
+
+// ── Кастомні поля товару ─────────────────────────────────────────
+export const customFieldParamsSchema = z.object({
+  id: z.string().cuid('Некоректний id товару'),
+  fieldId: z.string().cuid('Некоректний id поля'),
+})
+
+export const createCustomFieldSchema = z.object({
+  key: z
+    .string()
+    .trim()
+    .min(1, 'Ключ не може бути порожнім')
+    .max(60)
+    .regex(/^[a-z0-9_]+$/, 'Ключ — тільки латиниця, цифри й підкреслення (напр. warranty_months)'),
+  value: z.string().trim().min(1, 'Значення не може бути порожнім').max(500),
+})
+
+export const updateCustomFieldSchema = z.object({
+  value: z.string().trim().min(1, 'Значення не може бути порожнім').max(500),
+})
