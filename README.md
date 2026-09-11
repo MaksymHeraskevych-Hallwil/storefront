@@ -7,6 +7,28 @@
 Повна схема (архітектура, модель даних, API, флоу процесів) — у
 StoreFront Blueprint, обговорена окремо перед стартом розробки.
 
+## Поточний статус
+
+Готові Етапи 0-2 (коміти `09ab809` → `058a7f1`). Що вже працює:
+
+- **Інфраструктура.** `postgres` + `backend` + `nginx` у Docker Compose;
+  опублікований порт лише один — `80` у nginx, решта тільки `expose`
+  всередині docker-мережі.
+- **Автентифікація.** `POST /api/auth/login`, `POST /api/auth/logout`,
+  `GET /api/auth/me`. JWT у httpOnly-кукі, ролі `ADMIN`/`STAFF`,
+  `requireAuth`/`requireRole` middleware.
+- **Товари.** Моделі `Product`, `ProductVariant`, `ProductImage`.
+  CRUD для товарів (список з пагінацією й фільтром за статусом,
+  створення, деталі, оновлення, архівування — soft delete, тільки
+  `ADMIN`) і для варіантів (унікальний SKU з обробкою конфлікту).
+- **Тести.** 25 юніт-тестів (zod-схеми, auth-middleware, контролер
+  товарів із замоканим Prisma-клієнтом) — усі проходять.
+- **Дефолтний адмін після сіда:** `admin@storefront.dev` / `admin12345`
+  (лише для локальної розробки).
+
+Ще не зроблено: адмін-панель (Етап 3) і все, що після неї, — див.
+дорожню карту нижче.
+
 ## Стек
 
 - **frontend/** — Next.js (App Router) + [Shopify Polaris](https://polaris.shopify.com/) для UI адмінки
