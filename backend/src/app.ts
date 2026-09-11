@@ -2,6 +2,7 @@ import express from 'express'
 import cors from 'cors'
 import cookieParser from 'cookie-parser'
 import authRoutes from './routes/auth.routes'
+import productsRoutes from './routes/products.routes'
 
 // Тільки збираємо застосунок, сервер НЕ піднімаємо — так тести зможуть
 // передати `app` у supertest без реального відкриття порту.
@@ -17,6 +18,7 @@ app.use(express.json())
 app.use(cookieParser())
 
 app.use('/api/auth', authRoutes)
+app.use('/api/products', productsRoutes)
 
 app.get('/', (_req, res) => {
   res.json({ message: 'StoreFront API is running', version: '0.1' })

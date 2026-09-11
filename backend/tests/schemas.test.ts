@@ -1,4 +1,10 @@
-import { loginSchema } from '../src/schemas'
+import {
+  loginSchema,
+  idParamSchema,
+  createProductSchema,
+  updateProductSchema,
+  createVariantSchema,
+} from '../src/schemas'
 
 describe('loginSchema', () => {
   it('приймає коректні email і пароль', () => {
@@ -22,5 +28,50 @@ describe('loginSchema', () => {
   it('відхиляє порожній пароль', () => {
     const result = loginSchema.safeParse({ email: 'admin@storefront.dev', password: '' })
     expect(result.success).toBe(false)
+  })
+})
+
+describe('idParamSchema', () => {
+  it('приймає валідний cuid', () => {
+    expect(idParamSchema.safeParse({ id: 'cltest1234567890abcdefghi' }).success).toBe(true)
+  })
+
+  it('відхиляє довільний рядок на кшталт "123"', () => {
+    expect(idParamSchema.safeParse({ id: '123' }).success).toBe(false)
+  })
+})
+
+describe('createProductSchema', () => {
+  it('приймає лише title, решта опціональні', () => {
+    expect(createProductSchema.safeParse({ title: 'Кавова чашка' }).success).toBe(true)
+  })
+
+  it('відхиляє порожній title', () => {
+    expect(createProductSchema.safeParse({ title: '' }).success).toBe(false)
+  })
+})
+
+describe('updateProductSchema', () => {
+  it('відхиляє порожній об\'єкт — PATCH без полів безглуздий', () => {
+    expect(updateProductSchema.safeParse({}).success).toBe(false)
+  })
+
+  it('приймає часткове оновлення одним полем', () => {
+    expect(updateProductSchema.safeParse({ vendor: 'StoreFront Goods' }).success).toBe(true)
+  })
+})
+
+describe('createVariantSchema', () => {
+  it('приводить price і inventoryQty з рядків (як прийшло б із форми)', () => {
+    const result = createVariantSchema.safeParse({ sku: 'CUP-001', price: '12.50', inventoryQty: '40' })
+    expect(result.success).toBe(true)
+    if (result.success) {
+      expect(result.data.price).toBe(12.5)
+      expect(result.data.inventoryQty).toBe(40)
+    }
+  })
+
+  it('відхиляє price <= 0', () => {
+    expect(createVariantSchema.safeParse({ sku: 'CUP-001', price: 0 }).success).toBe(false)
   })
 })

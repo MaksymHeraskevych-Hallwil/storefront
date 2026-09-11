@@ -23,7 +23,13 @@ export const validate =
       })
     }
 
-    req[source] = result.data
+    // req.query в Express 5 доступний тільки для читання (це геттер),
+    // тому розібрані query-параметри кладемо в окреме поле.
+    if (source === 'query') {
+      req.validatedQuery = result.data
+    } else {
+      req[source] = result.data
+    }
     next()
   }
 

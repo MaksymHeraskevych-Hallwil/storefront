@@ -57,13 +57,21 @@ JWT лежить у httpOnly-кукі `token` (не в `localStorage` і не в
 `{ userId, role }` у `req.user`; `requireRole('ADMIN', ...)` ставиться
 після нього там, де дія дозволена не всім ролям.
 
-## Ендпоінти (Етап 1)
+## Ендпоінти
 
-| Метод і шлях          | Опис                                  |
-| ---------------------- | -------------------------------------- |
-| `POST /api/auth/login`  | Вхід, видає httpOnly-куку з JWT        |
-| `POST /api/auth/logout` | Видаляє куку                          |
-| `GET /api/auth/me`      | Поточний користувач (потрібна кука)    |
+| Метод і шлях                          | Роль          | Опис                                    |
+| -------------------------------------- | ------------- | ---------------------------------------- |
+| `POST /api/auth/login`                 | Public        | Вхід, видає httpOnly-куку з JWT          |
+| `POST /api/auth/logout`                | Staff         | Видаляє куку                            |
+| `GET /api/auth/me`                     | Staff         | Поточний користувач (потрібна кука)      |
+| `GET /api/products`                    | Staff         | Список, пагінація (`page`/`limit`), фільтр `status` |
+| `POST /api/products`                   | Staff         | Створити товар                          |
+| `GET /api/products/:id`                | Staff         | Товар з варіантами й зображеннями        |
+| `PATCH /api/products/:id`              | Staff         | Оновити поля товару                     |
+| `DELETE /api/products/:id`             | **Admin**     | Архівувати (`status: ARCHIVED`, не DELETE-рядок) |
+| `POST /api/products/:id/variants`      | Staff         | Додати варіант (SKU унікальний)         |
+| `PATCH /api/products/:id/variants/:variantId` | Staff  | Оновити варіант                         |
+| `DELETE /api/products/:id/variants/:variantId` | Staff | Видалити варіант                        |
 
 ## Тести
 
@@ -71,6 +79,21 @@ JWT лежить у httpOnly-кукі `token` (не в `localStorage` і не в
 docker compose exec backend npm test
 ```
 
-Юніт-тести без бази: zod-схеми й auth-middleware (мокані `req`/`res`,
-токени підписані тестовим секретом). Інтеграційні тести проти реальної
-БД — пізніший етап.
+Юніт-тести без бази: zod-схеми, auth-middleware (мокані `req`/`res`,
+токени підписані тестовим секретом) і контролер товарів (Prisma-клієнт
+замокано в `tests/helpers/prismaMock.ts`, за зразком `my-blog`). Реальні
+помилки Prisma (`P2002`, `P2025`) відтворюються справжнім класом
+`Prisma.PrismaClientKnownRequestError`, а не рядковими заглушками — саме
+так спіймали баг нижче. Інтеграційні тести проти реальної БД — пізніший
+етап.
+
+### Реальна пастка: форма помилки `P2002` під driver adapter
+
+Класичний Prisma-код перевіряє дублікат унікального поля через
+`error.meta.target` (масив назв полів). Під `@prisma/adapter-pg`
+(Prisma 7) це поле **порожнє** — замість нього `meta.driverAdapterError
+.cause.constraint.index` з іменем constraint'у в БД (`"ProductVariant_
+sku_key"`). Перша версія коду це не врахувала: дубль SKU падав у 500
+замість 409, доки не побачили реальний `EXPLAIN`-подібний вивід помилки
+в логах контейнера. Код і тест у `products.controller.ts`
+(`isUniqueConstraintError`) уже враховують саме цю форму.

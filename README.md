@@ -30,7 +30,7 @@ docker compose exec backend npm run prisma:seed   # разово: перший A
 
 - [x] **0 — Ініціалізація.** Репозиторій, структура frontend/ + backend/ + nginx/, docker-compose з Postgres (без опублікованих портів).
 - [x] **1 — Фундамент бекенду.** Express у Docker (hot-reload), Prisma 7, модель User, логін + JWT (httpOnly-кука), role-middleware, юніт-тести — все за nginx на порту 80.
-- [ ] **2 — Домен товарів.** Product / ProductVariant / ProductImage, CRUD API, тести.
+- [x] **2 — Домен товарів.** Product / ProductVariant / ProductImage, CRUD API з ролями (STAFF/ADMIN), архівування замість DELETE, тести.
 - [ ] **3 — Фундамент адмінки.** Next.js + Polaris, навігація, логін, список і картка товару.
 - [ ] **4 — Домен замовлень.** Order / OrderItem, зміна статусу з перевіркою переходів.
 - [ ] **5 — Підтримка клієнтів.** Ticket / TicketMessage, перегляд і відповідь.
