@@ -47,12 +47,30 @@ services:
     # створюють вручну: docker compose exec backend npx prisma migrate dev.
     command: sh -c "npx prisma generate && npx prisma migrate deploy && npm run dev"
 
+  frontend:
+    build: ./frontend
+    depends_on:
+      - backend
+    environment:
+      # Для запитів з боку сервера (Server Components) — напряму в
+      # docker-мережу, в обхід nginx. Браузер (клієнтські запити) йде
+      # відносним шляхом "/api/...", бо для нього все за nginx —
+      # один origin, і CORS тут ні до чого.
+      BACKEND_INTERNAL_URL: 'http://backend:5051'
+    volumes:
+      - ./frontend:/app
+      - /app/node_modules
+      - /app/.next
+    expose:
+      - '3000'
+
   nginx:
     build: ./nginx
     depends_on:
       - backend
-    # Єдиний сервіс з портом, відкритим на хост — усі запити,
-    # включно з майбутнім фронтендом (Етап 3), ідуть тільки сюди.
+      - frontend
+    # Єдиний сервіс з портом, відкритим на хост — усі запити йдуть
+    # тільки сюди.
     ports:
       - '80:80'
 
