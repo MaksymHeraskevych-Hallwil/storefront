@@ -34,5 +34,11 @@ export async function serverFetch<T>(path: string, init: RequestInit = {}): Prom
     throw new ApiError(res.status, body.error ?? `Запит не вдався (${res.status})`);
   }
 
+  // DELETE-ендпоінти повертають 204 без тіла — res.json() впав би
+  // на порожньому рядку.
+  if (res.status === 204) {
+    return undefined as T;
+  }
+
   return res.json();
 }

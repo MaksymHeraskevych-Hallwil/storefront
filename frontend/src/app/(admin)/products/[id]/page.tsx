@@ -3,15 +3,10 @@ import { notFound } from "next/navigation";
 import { ChevronLeft } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table";
 import { ApiError, serverFetch } from "@/lib/api";
+import { ProductEditForm } from "./product-edit-form";
+import { VariantsManager } from "./variants-manager";
+import { CustomFieldsManager } from "./custom-fields-manager";
 
 type ProductDetail = {
   product: {
@@ -20,6 +15,7 @@ type ProductDetail = {
     description: string | null;
     vendor: string | null;
     status: "DRAFT" | "ACTIVE" | "ARCHIVED";
+    updatedAt: string;
     variants: { id: string; sku: string; price: string; inventoryQty: number }[];
     images: { id: string; url: string }[];
     customFields: { id: string; key: string; value: string }[];
@@ -31,8 +27,6 @@ const STATUS_LABEL: Record<ProductDetail["product"]["status"], string> = {
   ACTIVE: "Активний",
   ARCHIVED: "Архівовано",
 };
-
-const currency = new Intl.NumberFormat("uk-UA", { style: "currency", currency: "UAH" });
 
 export default async function ProductDetailPage({
   params,
@@ -69,47 +63,17 @@ export default async function ProductDetailPage({
 
       <div className="flex items-start gap-5">
         <div className="flex flex-1 flex-col gap-5">
-          <Card>
-            <CardHeader>
-              <h2 className="text-sm font-semibold">Основне</h2>
-            </CardHeader>
-            <CardContent className="flex flex-col gap-3">
-              <Field label="Назва" value={product.title} />
-              <Field label="Опис" value={product.description ?? "—"} />
-            </CardContent>
-          </Card>
+          {/* key: без нього форма з defaultValue-полями не перемалює
+              значення після успішного збереження — React лишає старий
+              інстанс, defaultValue застосовується лише при монтуванні. */}
+          <ProductEditForm key={product.updatedAt} product={product} />
 
           <Card>
             <CardHeader>
               <h2 className="text-sm font-semibold">Варіанти</h2>
             </CardHeader>
             <CardContent>
-              {product.variants.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Ще немає варіантів</p>
-              ) : (
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>SKU</TableHead>
-                      <TableHead>Ціна</TableHead>
-                      <TableHead>Залишок</TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {product.variants.map((variant) => (
-                      <TableRow key={variant.id}>
-                        <TableCell className="font-mono text-xs">{variant.sku}</TableCell>
-                        <TableCell>{currency.format(Number(variant.price))}</TableCell>
-                        <TableCell
-                          className={variant.inventoryQty === 0 ? "text-destructive" : undefined}
-                        >
-                          {variant.inventoryQty} шт
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              )}
+              <VariantsManager productId={product.id} variants={product.variants} />
             </CardContent>
           </Card>
 
@@ -118,45 +82,12 @@ export default async function ProductDetailPage({
               <h2 className="text-sm font-semibold">Кастомні поля</h2>
             </CardHeader>
             <CardContent>
-              {product.customFields.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Ще немає кастомних полів</p>
-              ) : (
-                <div className="flex flex-col gap-2">
-                  {product.customFields.map((field) => (
-                    <div key={field.id} className="flex gap-3 text-sm">
-                      <span className="w-40 shrink-0 truncate font-mono text-xs text-muted-foreground">
-                        {field.key}
-                      </span>
-                      <span>{field.value}</span>
-                    </div>
-                  ))}
-                </div>
-              )}
+              <CustomFieldsManager productId={product.id} fields={product.customFields} />
             </CardContent>
           </Card>
         </div>
 
         <div className="flex w-72 shrink-0 flex-col gap-5">
-          <Card>
-            <CardHeader>
-              <h2 className="text-sm font-semibold">Статус</h2>
-            </CardHeader>
-            <CardContent>
-              <Badge variant={product.status === "ACTIVE" ? "default" : "secondary"}>
-                {STATUS_LABEL[product.status]}
-              </Badge>
-            </CardContent>
-          </Card>
-
-          <Card>
-            <CardHeader>
-              <h2 className="text-sm font-semibold">Постачальник</h2>
-            </CardHeader>
-            <CardContent>
-              <p className="text-sm">{product.vendor ?? "—"}</p>
-            </CardContent>
-          </Card>
-
           <Card>
             <CardHeader className="flex flex-row items-center justify-between">
               <h2 className="text-sm font-semibold">Зображення</h2>
@@ -170,15 +101,6 @@ export default async function ProductDetailPage({
           </Card>
         </div>
       </div>
-    </div>
-  );
-}
-
-function Field({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="flex flex-col gap-1">
-      <span className="text-xs font-medium text-muted-foreground">{label}</span>
-      <span className="text-sm">{value}</span>
     </div>
   );
 }
