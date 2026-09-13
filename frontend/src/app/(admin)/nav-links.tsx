@@ -7,7 +7,7 @@ import { cn } from "@/lib/utils";
 
 const items = [
   { href: "/products", label: "Товари", icon: Package, ready: true },
-  { href: "/orders", label: "Замовлення", icon: Receipt, ready: false, stage: "Етап 4" },
+  { href: "/orders", label: "Замовлення", icon: Receipt, ready: true },
   { href: "/support", label: "Підтримка", icon: Headset, ready: false, stage: "Етап 5" },
   { href: "/analytics", label: "Аналітика", icon: BarChart3, ready: false, stage: "Етап 6" },
 ];

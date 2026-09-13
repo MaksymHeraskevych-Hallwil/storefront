@@ -84,6 +84,23 @@ JWT лежить у httpOnly-кукі `token` (не в `localStorage` і не в
 | `POST /api/products/:id/custom-fields` | Staff         | Додати поле (`key` унікальний у межах товару) |
 | `PATCH /api/products/:id/custom-fields/:fieldId` | Staff | Оновити значення поля                  |
 | `DELETE /api/products/:id/custom-fields/:fieldId` | Staff | Видалити поле                         |
+| `GET /api/orders`                      | Staff         | Список, пагінація, фільтр `status`, з підрахованим `total` |
+| `GET /api/orders/:id`                  | Staff         | Замовлення з позиціями й `allowedTransitions` |
+| `PATCH /api/orders/:id/status`         | Staff         | Змінити статус (лише дозволений перехід, інакше `409`) |
+
+### Статуси замовлення
+
+```
+PENDING → PAID → FULFILLED
+PENDING → CANCELLED
+PAID → REFUNDED
+```
+
+`FULFILLED`/`CANCELLED`/`REFUNDED` — кінцеві, назад ходу немає.
+Таблиця переходів (`ALLOWED_TRANSITIONS` в `orders.controller.ts`) —
+єдине джерело правди: `GET /api/orders/:id` віддає `allowedTransitions`
+для поточного статусу, і фронт малює кнопки тільки для них, не
+дублюючи цю логіку.
 
 ## Тести
 

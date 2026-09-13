@@ -6,6 +6,7 @@ import {
   updateProductSchema,
   createVariantSchema,
   createCustomFieldSchema,
+  updateOrderStatusSchema,
 } from '../src/schemas'
 
 describe('loginSchema', () => {
@@ -108,5 +109,15 @@ describe('createCustomFieldSchema', () => {
 
   it('відхиляє порожнє значення', () => {
     expect(createCustomFieldSchema.safeParse({ key: 'material', value: '' }).success).toBe(false)
+  })
+})
+
+describe('updateOrderStatusSchema', () => {
+  it('приймає валідний статус', () => {
+    expect(updateOrderStatusSchema.safeParse({ status: 'PAID' }).success).toBe(true)
+  })
+
+  it('відхиляє довільний рядок поза enum', () => {
+    expect(updateOrderStatusSchema.safeParse({ status: 'SHIPPED' }).success).toBe(false)
   })
 })

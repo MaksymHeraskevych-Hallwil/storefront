@@ -83,3 +83,14 @@ export const createCustomFieldSchema = z.object({
 export const updateCustomFieldSchema = z.object({
   value: z.string().trim().min(1, 'Значення не може бути порожнім').max(500),
 })
+
+// ── Замовлення ────────────────────────────────────────────────────
+const orderStatusEnum = z.enum(['PENDING', 'PAID', 'FULFILLED', 'CANCELLED', 'REFUNDED'])
+
+export const orderListQuerySchema = paginationSchema.extend({
+  status: orderStatusEnum.optional(),
+})
+
+export const updateOrderStatusSchema = z.object({
+  status: orderStatusEnum,
+})

@@ -52,6 +52,7 @@ model ProductVariant {
   price        Decimal  @db.Decimal(10, 2)
   inventoryQty Int      @default(0)
   createdAt    DateTime @default(now())
+  orderItems   OrderItem[]
 
   // productId постійно фільтрується (картка товару тягне свої варіанти) —
   // саме випадок з Index Lab, де індекс на зовнішньому ключі окупається.
@@ -82,4 +83,54 @@ model ProductCustomField {
   // а плутанина; unique заразом дає БД-рівневу гарантію.
   @@unique([productId, key])
   @@index([productId])
+}
+
+// Покупець. Окрема модель від User: покупці не логіняться в адмінку
+// (немає passwordHash), і навіть коли з'явиться публічна вітрина,
+// це буде інша "особа" в системі з іншими правами.
+model Customer {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  name      String?
+  phone     String?
+  orders    Order[]
+  createdAt DateTime @default(now())
+}
+
+enum OrderStatus {
+  PENDING
+  PAID
+  FULFILLED
+  CANCELLED
+  REFUNDED
+}
+
+model Order {
+  id          String      @id @default(cuid())
+  orderNumber Int         @unique @default(autoincrement())
+  customerId  String
+  customer    Customer    @relation(fields: [customerId], references: [id])
+  status      OrderStatus @default(PENDING)
+  items       OrderItem[]
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  // Список замовлень фільтрують за статусом і сортують за датою —
+  // той самий складений індекс, що довів свою користь в Index Lab.
+  @@index([status, createdAt])
+  @@index([customerId])
+}
+
+model OrderItem {
+  id        String         @id @default(cuid())
+  orderId   String
+  order     Order          @relation(fields: [orderId], references: [id])
+  variantId String
+  variant   ProductVariant @relation(fields: [variantId], references: [id])
+  quantity  Int
+  // Ціна на МОМЕНТ покупки, а не поточна ціна варіанта — інакше зміна
+  // прайсу заднім числом переписала б історію вже оплачених замовлень.
+  price     Decimal        @db.Decimal(10, 2)
+
+  @@index([orderId])
 }

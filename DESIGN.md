@@ -4,7 +4,7 @@
 ключових процесів і стейт-менеджмент на фронті. Підзавдання 1 з
 брифу — до початку реалізації (Підзавдання 2).
 
-Статус: частина позначеного тут уже реалізована (Етапи 0-3, див.
+Статус: частина позначеного тут уже реалізована (Етапи 0-4, див.
 [README.md](README.md)); решта — план на наступні етапи. Де це
 важливо, позначено явно.
 
@@ -42,13 +42,16 @@ docker-мережі — `expose`, не `ports`. Підключення до ба
 
 ## 2. Модель даних
 
-### 2.1 Реалізовано (Етапи 1-2)
+### 2.1 Реалізовано (Етапи 1-4)
 
 ```mermaid
 erDiagram
     Product ||--o{ ProductVariant : "has"
     Product ||--o{ ProductImage : "has"
     Product ||--o{ ProductCustomField : "has"
+    Customer ||--o{ Order : "places"
+    Order ||--o{ OrderItem : "contains"
+    ProductVariant ||--o{ OrderItem : "sold as"
 
     User {
         string id PK
@@ -91,27 +94,6 @@ erDiagram
         string key "унікальний у межах товару"
         string value
     }
-```
-
-`User` — персонал, що логіниться в адмінку (`ADMIN`/`STAFF`). Покупці
-(`Customer`, нижче) — окрема модель: різний спосіб "входу" (не
-логіняться напряму в MVP) і різні права, тому окрема таблиця, а не
-ще одна роль у `User`.
-
-`ProductCustomField` — довільні пари ключ-значення на товарі
-(на кшталт Shopify metafields), а не JSON-блоб на варіанті: так кожне
-поле можна редагувати/видаляти окремим REST-запитом, і воно
-має власну гарантію унікальності на рівні БД (`@@unique([productId, key])`).
-
-### 2.2 Заплановано (Етапи 4-5)
-
-```mermaid
-erDiagram
-    Customer ||--o{ Order : "places"
-    Customer ||--o{ Ticket : "opens"
-    Order ||--o{ OrderItem : "contains"
-    ProductVariant ||--o{ OrderItem : "sold as"
-    Ticket ||--o{ TicketMessage : "contains"
 
     Customer {
         string id PK
@@ -127,6 +109,7 @@ erDiagram
         string customerId FK
         string status "PENDING|PAID|FULFILLED|CANCELLED|REFUNDED"
         datetime createdAt
+        datetime updatedAt
     }
 
     OrderItem {
@@ -134,8 +117,26 @@ erDiagram
         string orderId FK
         string variantId FK
         int quantity
-        decimal price "ціна на момент покупки"
+        decimal price "ціна на момент покупки, не поточна ціна варіанта"
     }
+```
+
+`User` — персонал, що логіниться в адмінку (`ADMIN`/`STAFF`). Покупці
+(`Customer`, нижче) — окрема модель: різний спосіб "входу" (не
+логіняться напряму в MVP) і різні права, тому окрема таблиця, а не
+ще одна роль у `User`.
+
+`ProductCustomField` — довільні пари ключ-значення на товарі
+(на кшталт Shopify metafields), а не JSON-блоб на варіанті: так кожне
+поле можна редагувати/видаляти окремим REST-запитом, і воно
+має власну гарантію унікальності на рівні БД (`@@unique([productId, key])`).
+
+### 2.2 Заплановано (Етап 5)
+
+```mermaid
+erDiagram
+    Customer ||--o{ Ticket : "opens"
+    Ticket ||--o{ TicketMessage : "contains"
 
     Ticket {
         string id PK
@@ -195,9 +196,9 @@ REST, JSON. Ролі перевіряються middleware на бекенді �
 
 | Метод і шлях | Опис | Роль | Статус |
 |---|---|---|---|
-| `GET /api/orders` | Список, фільтр за статусом | Staff | 🔜 Етап 4 |
-| `GET /api/orders/:id` | Деталі з позиціями | Staff | 🔜 Етап 4 |
-| `PATCH /api/orders/:id/status` | Змінити статус (з перевіркою допустимого переходу) | Staff | 🔜 Етап 4 |
+| `GET /api/orders` | Список, фільтр за статусом, порахований `total` | Staff | ✅ |
+| `GET /api/orders/:id` | Деталі з позиціями й `allowedTransitions` | Staff | ✅ |
+| `PATCH /api/orders/:id/status` | Змінити статус (лише дозволений перехід, інакше `409`) | Staff | ✅ |
 
 ### Tickets
 
