@@ -31,6 +31,16 @@ export const prismaMock = {
     update: jest.fn(),
     count: jest.fn(),
   },
+  ticket: {
+    findMany: jest.fn(),
+    findUnique: jest.fn(),
+    update: jest.fn(),
+    count: jest.fn(),
+  },
+  ticketMessage: {
+    create: jest.fn(),
+  },
+  $transaction: jest.fn(),
 }
 
 export const mockResponse = () => {

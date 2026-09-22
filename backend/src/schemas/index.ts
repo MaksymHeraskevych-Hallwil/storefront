@@ -94,3 +94,21 @@ export const orderListQuerySchema = paginationSchema.extend({
 export const updateOrderStatusSchema = z.object({
   status: orderStatusEnum,
 })
+
+// ── Тікети підтримки ──────────────────────────────────────────────
+const ticketStatusEnum = z.enum(['OPEN', 'PENDING_CUSTOMER', 'CLOSED'])
+
+export const ticketListQuerySchema = paginationSchema.extend({
+  status: ticketStatusEnum.optional(),
+})
+
+export const updateTicketStatusSchema = z.object({
+  status: ticketStatusEnum,
+})
+
+export const createTicketMessageSchema = z.object({
+  body: z.string().trim().min(1, 'Повідомлення не може бути порожнім').max(5000),
+  // Відповідь і закриття одним запитом — типовий флоу підтримки:
+  // "вирішив питання — відповів і одразу закрив", без другого кроку.
+  close: z.boolean().optional(),
+})

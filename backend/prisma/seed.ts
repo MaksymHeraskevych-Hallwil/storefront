@@ -76,9 +76,73 @@ async function seedOrders() {
   console.log('Готово: 2 покупці, 3 тестові замовлення (PENDING / PAID / FULFILLED)')
 }
 
+// Так само ідемпотентно: якщо тікети вже є — виходимо. Прив'язуємось
+// до тих самих покупців, що й seedOrders(), щоб не плодити зайвих Customer.
+async function seedTickets() {
+  const existingTickets = await prisma.ticket.count()
+  if (existingTickets > 0) return
+
+  const [olena, ivan] = await Promise.all([
+    prisma.customer.upsert({
+      where: { email: 'olena@example.com' },
+      update: {},
+      create: { email: 'olena@example.com', name: 'Олена Коваль', phone: '+380501234567' },
+    }),
+    prisma.customer.upsert({
+      where: { email: 'ivan@example.com' },
+      update: {},
+      create: { email: 'ivan@example.com', name: 'Іван Петренко', phone: '+380671112233' },
+    }),
+  ])
+
+  await prisma.ticket.create({
+    data: {
+      customerId: olena.id,
+      subject: 'Коли приїде замовлення?',
+      status: 'OPEN',
+      messages: {
+        create: [
+          { authorType: 'CUSTOMER', body: 'Доброго дня! Підкажіть, будь ласка, статус мого замовлення.' },
+        ],
+      },
+    },
+  })
+
+  await prisma.ticket.create({
+    data: {
+      customerId: ivan.id,
+      subject: 'Не працює промокод',
+      status: 'PENDING_CUSTOMER',
+      messages: {
+        create: [
+          { authorType: 'CUSTOMER', body: 'Промокод SALE10 видає помилку при оформленні.' },
+          { authorType: 'STAFF', body: 'Перевірили — промокод уже застосований до вашого акаунта. Спробуйте ще раз, будь ласка.' },
+        ],
+      },
+    },
+  })
+
+  await prisma.ticket.create({
+    data: {
+      customerId: olena.id,
+      subject: 'Дякую за швидку доставку',
+      status: 'CLOSED',
+      messages: {
+        create: [
+          { authorType: 'CUSTOMER', body: 'Все прийшло вчасно, дякую!' },
+          { authorType: 'STAFF', body: 'Раді були допомогти! Гарного дня.' },
+        ],
+      },
+    },
+  })
+
+  console.log('Готово: 3 тестові тікети (OPEN / PENDING_CUSTOMER / CLOSED)')
+}
+
 async function main() {
   await seedAdmin()
   await seedOrders()
+  await seedTickets()
 }
 
 main()

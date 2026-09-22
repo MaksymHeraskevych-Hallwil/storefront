@@ -42,7 +42,7 @@ docker-мережі — `expose`, не `ports`. Підключення до ба
 
 ## 2. Модель даних
 
-### 2.1 Реалізовано (Етапи 1-4)
+### 2.1 Реалізовано (Етапи 1-5)
 
 ```mermaid
 erDiagram
@@ -52,6 +52,8 @@ erDiagram
     Customer ||--o{ Order : "places"
     Order ||--o{ OrderItem : "contains"
     ProductVariant ||--o{ OrderItem : "sold as"
+    Customer ||--o{ Ticket : "opens"
+    Ticket ||--o{ TicketMessage : "contains"
 
     User {
         string id PK
@@ -119,6 +121,23 @@ erDiagram
         int quantity
         decimal price "ціна на момент покупки, не поточна ціна варіанта"
     }
+
+    Ticket {
+        string id PK
+        string customerId FK
+        string subject
+        string status "OPEN|PENDING_CUSTOMER|CLOSED"
+        datetime createdAt
+        datetime updatedAt
+    }
+
+    TicketMessage {
+        string id PK
+        string ticketId FK
+        string authorType "CUSTOMER | STAFF"
+        string body
+        datetime createdAt
+    }
 ```
 
 `User` — персонал, що логіниться в адмінку (`ADMIN`/`STAFF`). Покупці
@@ -131,29 +150,12 @@ erDiagram
 поле можна редагувати/видаляти окремим REST-запитом, і воно
 має власну гарантію унікальності на рівні БД (`@@unique([productId, key])`).
 
-### 2.2 Заплановано (Етап 5)
-
-```mermaid
-erDiagram
-    Customer ||--o{ Ticket : "opens"
-    Ticket ||--o{ TicketMessage : "contains"
-
-    Ticket {
-        string id PK
-        string customerId FK
-        string subject
-        string status "OPEN|PENDING_CUSTOMER|CLOSED"
-        datetime createdAt
-    }
-
-    TicketMessage {
-        string id PK
-        string ticketId FK
-        string authorType "CUSTOMER | STAFF"
-        string body
-        datetime createdAt
-    }
-```
+На відміну від `Order.status`, `Ticket.status` не має таблиці
+дозволених переходів — міняється вільно в будь-якому напрямку.
+Діалог підтримки не такий лінійний, як оплата замовлення (клієнт може
+написати в уже закритий тікет; персонал може відкрити тікет назад
+без формального "скасування"), а бриф вимагав лише перегляд і
+відповідь/закриття.
 
 Зовнішні ключі (`productId`, `orderId`, `variantId`, `ticketId`,
 `customerId`) отримують явний `@@index([...])` у Prisma-схемі —
@@ -204,10 +206,10 @@ REST, JSON. Ролі перевіряються middleware на бекенді �
 
 | Метод і шлях | Опис | Роль | Статус |
 |---|---|---|---|
-| `GET /api/tickets` | Список звернень, фільтр за статусом | Staff | 🔜 Етап 5 |
-| `GET /api/tickets/:id` | Тікет з листуванням | Staff | 🔜 Етап 5 |
-| `POST /api/tickets/:id/messages` | Відповісти клієнту | Staff | 🔜 Етап 5 |
-| `PATCH /api/tickets/:id/status` | Закрити / повернути в роботу | Staff | 🔜 Етап 5 |
+| `GET /api/tickets` | Список звернень, фільтр за статусом | Staff | ✅ |
+| `GET /api/tickets/:id` | Тікет з листуванням | Staff | ✅ |
+| `POST /api/tickets/:id/messages` | Відповісти клієнту (`close: true` — заразом закрити) | Staff | ✅ |
+| `PATCH /api/tickets/:id/status` | Змінити статус вручну, без обмежень переходу | Staff | ✅ |
 
 ### Analytics
 

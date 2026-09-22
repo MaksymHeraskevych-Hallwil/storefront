@@ -94,6 +94,7 @@ model Customer {
   name      String?
   phone     String?
   orders    Order[]
+  tickets   Ticket[]
   createdAt DateTime @default(now())
 }
 
@@ -133,4 +134,40 @@ model OrderItem {
   price     Decimal        @db.Decimal(10, 2)
 
   @@index([orderId])
+}
+
+enum TicketStatus {
+  OPEN
+  PENDING_CUSTOMER
+  CLOSED
+}
+
+enum TicketAuthorType {
+  CUSTOMER
+  STAFF
+}
+
+model Ticket {
+  id         String          @id @default(cuid())
+  customerId String
+  customer   Customer        @relation(fields: [customerId], references: [id])
+  subject    String
+  status     TicketStatus    @default(OPEN)
+  messages   TicketMessage[]
+  createdAt  DateTime        @default(now())
+  updatedAt  DateTime        @updatedAt
+
+  @@index([status, createdAt])
+  @@index([customerId])
+}
+
+model TicketMessage {
+  id         String           @id @default(cuid())
+  ticketId   String
+  ticket     Ticket           @relation(fields: [ticketId], references: [id])
+  authorType TicketAuthorType
+  body       String
+  createdAt  DateTime         @default(now())
+
+  @@index([ticketId])
 }
