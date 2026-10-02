@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
+import { BarChart } from "@/components/bar-chart";
 import { serverFetch } from "@/lib/api";
 import { cn } from "@/lib/utils";
 
@@ -10,11 +11,20 @@ type TopProduct = {
   revenue: number;
 };
 
+type SeriesPoint = {
+  date: string;
+  revenue: number;
+  orders: number;
+  newCustomers: number;
+};
+
 type AnalyticsSummary = {
   revenue: number;
   orderCount: number;
+  newCustomers: number;
   topProducts: TopProduct[];
   days: number | null;
+  series: SeriesPoint[];
 };
 
 const PERIODS: { label: string; days: number | null }[] = [
@@ -25,6 +35,7 @@ const PERIODS: { label: string; days: number | null }[] = [
 ];
 
 const currency = new Intl.NumberFormat("uk-UA", { style: "currency", currency: "UAH" });
+const dayLabel = new Intl.DateTimeFormat("uk-UA", { day: "numeric", month: "short", timeZone: "UTC" });
 
 export default async function AnalyticsPage({
   searchParams,
@@ -35,9 +46,13 @@ export default async function AnalyticsPage({
   const days = params.days ? Number(params.days) : null;
 
   const query = days ? `?days=${days}` : "";
-  const { revenue, orderCount, topProducts } = await serverFetch<AnalyticsSummary>(
+  const { revenue, orderCount, newCustomers, topProducts, series } = await serverFetch<AnalyticsSummary>(
     `/api/analytics/summary${query}`
   );
+
+  const seriesPeriod = days ? `за останні ${days} днів` : "за останні 90 днів";
+  const points = (pick: (p: SeriesPoint) => number) =>
+    series.map((p) => ({ label: dayLabel.format(new Date(p.date)), value: pick(p) }));
 
   const maxQuantity = Math.max(1, ...topProducts.map((p) => p.quantitySold));
 
@@ -70,7 +85,7 @@ export default async function AnalyticsPage({
         })}
       </div>
 
-      <div className="grid grid-cols-2 gap-5">
+      <div className="grid grid-cols-3 gap-5">
         <Card>
           <CardHeader>
             <h2 className="text-sm font-semibold text-muted-foreground">Виручка</h2>
@@ -90,6 +105,63 @@ export default async function AnalyticsPage({
           <CardContent>
             <p className="text-3xl font-bold">{orderCount}</p>
             <p className="mt-1 text-xs text-muted-foreground">Усі статуси за обраний період</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-sm font-semibold text-muted-foreground">Нових клієнтів</h2>
+          </CardHeader>
+          <CardContent>
+            <p className="text-3xl font-bold">{newCustomers}</p>
+            <p className="mt-1 text-xs text-muted-foreground">Зареєстровані за обраний період</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <h2 className="text-sm font-semibold">Продажі по днях</h2>
+          <p className="text-xs text-muted-foreground">Виручка, {seriesPeriod}</p>
+        </CardHeader>
+        <CardContent>
+          <BarChart
+            data={points((p) => p.revenue)}
+            kind="currency"
+            caption={`Виручка по днях, ${seriesPeriod}`}
+            valueHeader="Виручка"
+          />
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-2 gap-5">
+        <Card>
+          <CardHeader>
+            <h2 className="text-sm font-semibold">Замовлення по днях</h2>
+            <p className="text-xs text-muted-foreground">Кількість, {seriesPeriod}</p>
+          </CardHeader>
+          <CardContent>
+            <BarChart
+              data={points((p) => p.orders)}
+              kind="count"
+              caption={`Замовлення по днях, ${seriesPeriod}`}
+              valueHeader="Замовлень"
+            />
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <h2 className="text-sm font-semibold">Нові клієнти по днях</h2>
+            <p className="text-xs text-muted-foreground">Кількість, {seriesPeriod}</p>
+          </CardHeader>
+          <CardContent>
+            <BarChart
+              data={points((p) => p.newCustomers)}
+              kind="count"
+              caption={`Нові клієнти по днях, ${seriesPeriod}`}
+              valueHeader="Клієнтів"
+            />
           </CardContent>
         </Card>
       </div>
