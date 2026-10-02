@@ -112,3 +112,9 @@ export const createTicketMessageSchema = z.object({
   // "вирішив питання — відповів і одразу закрив", без другого кроку.
   close: z.boolean().optional(),
 })
+
+// ── Аналітика ─────────────────────────────────────────────────────
+// Без days — за весь час. З days — тільки замовлення за останні N днів.
+export const analyticsQuerySchema = z.object({
+  days: z.coerce.number().int().min(1).max(3650).optional(),
+})

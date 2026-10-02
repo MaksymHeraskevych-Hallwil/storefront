@@ -5,6 +5,7 @@ import authRoutes from './routes/auth.routes'
 import productsRoutes from './routes/products.routes'
 import ordersRoutes from './routes/orders.routes'
 import ticketsRoutes from './routes/tickets.routes'
+import analyticsRoutes from './routes/analytics.routes'
 
 // Тільки збираємо застосунок, сервер НЕ піднімаємо — так тести зможуть
 // передати `app` у supertest без реального відкриття порту.
@@ -23,6 +24,7 @@ app.use('/api/auth', authRoutes)
 app.use('/api/products', productsRoutes)
 app.use('/api/orders', ordersRoutes)
 app.use('/api/tickets', ticketsRoutes)
+app.use('/api/analytics', analyticsRoutes)
 
 app.get('/', (_req, res) => {
   res.json({ message: 'StoreFront API is running', version: '0.1' })

@@ -6,10 +6,10 @@ import { Package, Receipt, Headset, BarChart3 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const items = [
-  { href: "/products", label: "Товари", icon: Package, ready: true },
-  { href: "/orders", label: "Замовлення", icon: Receipt, ready: true },
-  { href: "/support", label: "Підтримка", icon: Headset, ready: true },
-  { href: "/analytics", label: "Аналітика", icon: BarChart3, ready: false, stage: "Етап 6" },
+  { href: "/products", label: "Товари", icon: Package },
+  { href: "/orders", label: "Замовлення", icon: Receipt },
+  { href: "/support", label: "Підтримка", icon: Headset },
+  { href: "/analytics", label: "Аналітика", icon: BarChart3 },
 ];
 
 export function NavLinks() {
@@ -18,23 +18,8 @@ export function NavLinks() {
   return (
     <nav className="flex flex-col gap-0.5">
       {items.map((item) => {
-        const isActive = item.ready && pathname.startsWith(item.href);
+        const isActive = pathname.startsWith(item.href);
         const Icon = item.icon;
-
-        if (!item.ready) {
-          return (
-            <div
-              key={item.href}
-              className="flex items-center gap-2.5 rounded-md px-3 py-2 text-sm text-muted-foreground"
-            >
-              <Icon className="size-4.5" strokeWidth={1.8} />
-              <span className="flex-1">{item.label}</span>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                {item.stage}
-              </span>
-            </div>
-          );
-        }
 
         return (
           <Link
