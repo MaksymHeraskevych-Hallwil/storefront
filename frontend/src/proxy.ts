@@ -20,8 +20,10 @@ export function proxy(request: NextRequest) {
     return NextResponse.redirect(new URL("/login", request.url));
   }
 
-  if (hasSession && isPublicPath) {
-    return NextResponse.redirect(new URL("/", request.url));
+  // "/" редіректимо тут, а не в page.tsx через redirect() під час рендеру:
+  // у dev-режимі це давало оверлей "'RootPage' cannot have a negative time stamp".
+  if (hasSession && (isPublicPath || pathname === "/")) {
+    return NextResponse.redirect(new URL("/products", request.url));
   }
 
   return NextResponse.next();
