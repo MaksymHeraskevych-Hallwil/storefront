@@ -7,6 +7,7 @@ import { ApiError, serverFetch } from "@/lib/api";
 import { ProductEditForm } from "./product-edit-form";
 import { VariantsManager } from "./variants-manager";
 import { CustomFieldsManager } from "./custom-fields-manager";
+import { ImagesManager } from "./images-manager";
 
 type ProductDetail = {
   product: {
@@ -89,14 +90,11 @@ export default async function ProductDetailPage({
 
         <div className="flex w-72 shrink-0 flex-col gap-5">
           <Card>
-            <CardHeader className="flex flex-row items-center justify-between">
+            <CardHeader>
               <h2 className="text-sm font-semibold">Зображення</h2>
-              <span className="rounded bg-muted px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground">
-                Етап 7
-              </span>
             </CardHeader>
             <CardContent>
-              <p className="text-sm text-muted-foreground">Завантаження зображень ще не готове</p>
+              <ImagesManager productId={product.id} images={product.images} />
             </CardContent>
           </Card>
         </div>

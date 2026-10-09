@@ -23,6 +23,11 @@ export const productVariantParamsSchema = z.object({
   variantId: z.string().cuid('Некоректний id варіанта'),
 })
 
+export const productImageParamsSchema = z.object({
+  id: z.string().cuid('Некоректний id товару'),
+  imageId: z.string().cuid('Некоректний id зображення'),
+})
+
 export const paginationSchema = z.object({
   page: z.coerce.number().int().min(1).default(1),
   // Верхня межа навмисна: без неї ?limit=1000000 обходив би пагінацію

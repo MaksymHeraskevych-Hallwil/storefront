@@ -18,11 +18,42 @@ services:
       timeout: 5s
       retries: 10
 
+  # MinIO — локальна заміна Cloudflare R2 на час розробки: те саме S3 API,
+  # тож код бекенду однаковий. Порт НЕ опублікований: картинки браузер
+  # тягне через nginx (/media/), як і все інше.
+  minio:
+    image: minio/minio:latest
+    command: server /data
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin
+    expose:
+      - '9000'
+    volumes:
+      - miniodata:/data
+
+  # Одноразовий контейнер: створює бакет і робить його публічним на
+  # читання, щоб <img src> працював без підпису запиту. Чекаємо на MinIO
+  # циклом, а не healthcheck-ом: у свіжих образах minio немає `mc`.
+  minio-init:
+    image: minio/mc:latest
+    depends_on:
+      - minio
+    entrypoint: >
+      /bin/sh -c "
+      until mc alias set local http://minio:9000 minioadmin minioadmin; do sleep 1; done &&
+      mc mb --ignore-existing local/storefront-media &&
+      mc anonymous set download local/storefront-media &&
+      echo 'Бакет storefront-media готовий'
+      "
+
   backend:
     build: ./backend
     depends_on:
       postgres:
         condition: service_healthy
+      minio-init:
+        condition: service_completed_successfully
     environment:
       # Ім'я хоста тут — `postgres`, а не localhost: усередині
       # docker-мережі сервіси бачать один одного за іменем сервісу.
@@ -31,6 +62,15 @@ services:
       # тримати прямо в docker-compose.yml. Реальні прийдуть на проді.
       JWT_SECRET: 'dev-secret-change-me'
       PORT: 5051
+      # Сховище зображень. За замовчуванням — локальний MinIO. Щоб перейти
+      # на Cloudflare R2, достатньо покласти ці п'ять змінних у файл .env
+      # поруч (він у .gitignore): compose підхопить їх замість дефолтів.
+      S3_ENDPOINT: '${S3_ENDPOINT:-http://minio:9000}'
+      S3_BUCKET: '${S3_BUCKET:-storefront-media}'
+      S3_ACCESS_KEY_ID: '${S3_ACCESS_KEY_ID:-minioadmin}'
+      S3_SECRET_ACCESS_KEY: '${S3_SECRET_ACCESS_KEY:-minioadmin}'
+      # Адреса, за якою картинку тягне браузер (з боку хоста), — через nginx.
+      S3_PUBLIC_URL: '${S3_PUBLIC_URL:-http://localhost/media/storefront-media}'
     volumes:
       # Код монтуємо з хоста — так nodemon усередині контейнера бачить
       # зміни одразу, без перезбірки образу.
@@ -69,6 +109,7 @@ services:
     depends_on:
       - backend
       - frontend
+      - minio
     # Єдиний сервіс з портом, відкритим на хост — усі запити йдуть
     # тільки сюди.
     ports:
@@ -76,3 +117,4 @@ services:
 
 volumes:
   pgdata:
+  miniodata:

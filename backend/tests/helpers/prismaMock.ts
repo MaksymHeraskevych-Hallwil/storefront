@@ -34,6 +34,12 @@ export const prismaMock = {
   orderItem: {
     findMany: jest.fn(),
   },
+  productImage: {
+    aggregate: jest.fn(),
+    create: jest.fn(),
+    findFirst: jest.fn(),
+    delete: jest.fn(),
+  },
   customer: {
     count: jest.fn(),
     findMany: jest.fn(),

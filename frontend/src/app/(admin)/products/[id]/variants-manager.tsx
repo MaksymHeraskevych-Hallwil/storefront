@@ -13,11 +13,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import { formatMoney } from "@/lib/format";
 import { addVariant, deleteVariant } from "../actions";
 
 type Variant = { id: string; sku: string; price: string; inventoryQty: number };
 
-const currency = new Intl.NumberFormat("uk-UA", { style: "currency", currency: "UAH" });
 
 export function VariantsManager({ productId, variants }: { productId: string; variants: Variant[] }) {
   const [isAdding, setIsAdding] = useState(false);
@@ -43,7 +43,7 @@ export function VariantsManager({ productId, variants }: { productId: string; va
             {variants.map((variant) => (
               <TableRow key={variant.id}>
                 <TableCell className="font-mono text-xs">{variant.sku}</TableCell>
-                <TableCell>{currency.format(Number(variant.price))}</TableCell>
+                <TableCell>{formatMoney(Number(variant.price))}</TableCell>
                 <TableCell className={variant.inventoryQty === 0 ? "text-destructive" : undefined}>
                   {variant.inventoryQty} шт
                 </TableCell>

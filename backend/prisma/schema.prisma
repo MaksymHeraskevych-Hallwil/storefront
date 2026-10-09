@@ -63,7 +63,12 @@ model ProductImage {
   id        String @id @default(cuid())
   productId String
   product   Product @relation(fields: [productId], references: [id])
+  // Сам файл лежить в об'єктному сховищі (R2/MinIO), у базі — лише
+  // метадані. key потрібен, щоб при видаленні прибрати об'єкт із бакета.
+  key       String @unique
   url       String
+  mimeType  String
+  size      Int
   position  Int    @default(0)
 
   @@index([productId])

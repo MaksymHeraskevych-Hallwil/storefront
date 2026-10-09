@@ -51,8 +51,8 @@ docker compose restart backend
 
 ## Порти
 
-Ні Postgres, ні сам бекенд не мають опублікованого порту — тільки
-`expose` всередині docker-мережі (`postgres:5432`, `backend:5051` —
+Ні Postgres, ні MinIO, ні сам бекенд не мають опублікованого порту — тільки
+`expose` всередині docker-мережі (`postgres:5432`, `minio:9000`, `backend:5051` —
 видно з інших контейнерів, недоступно з хоста чи мережі). Єдиний вхід
 іззовні — nginx на `80`, який проксіює `/api/*` на бекенд. Перевірити
 самому: `nc -z localhost 5051` має сказати "connection refused".
@@ -81,6 +81,8 @@ JWT лежить у httpOnly-кукі `token` (не в `localStorage` і не в
 | `PATCH /api/products/:id/variants/:variantId` | Staff  | Оновити варіант                         |
 | `DELETE /api/products/:id/variants/:variantId` | Staff | Видалити варіант                        |
 | `GET /api/products/:id/custom-fields`  | Staff         | Список кастомних полів товару            |
+| `POST /api/products/:id/images`        | Staff         | Завантажити зображення (multipart, поле `file`, до 5 МБ) |
+| `DELETE /api/products/:id/images/:imageId` | Staff     | Видалити зображення (запис і файл у сховищі) |
 | `POST /api/products/:id/custom-fields` | Staff         | Додати поле (`key` унікальний у межах товару) |
 | `PATCH /api/products/:id/custom-fields/:fieldId` | Staff | Оновити значення поля                  |
 | `DELETE /api/products/:id/custom-fields/:fieldId` | Staff | Видалити поле                         |
@@ -143,6 +145,64 @@ PAID → REFUNDED
 `SUM(price * quantity)` напряму без сирого запиту, а обсяг даних у MVP
 не виправдовує `$queryRaw`. Той самий підхід, що й `orderTotal()` у
 `orders.controller.ts`.
+
+## Зображення: R2 / MinIO
+
+Файли лежать в об'єктному сховищі, а не в базі: у PostgreSQL тільки
+метадані (`ProductImage`: `key`, `url`, `mimeType`, `size`, `position`).
+
+Код пише в **S3 API**, тож однаково працює з Cloudflare R2 і з MinIO.
+Локально `docker compose` піднімає MinIO й створює бакет
+`storefront-media` (одноразовий контейнер `minio-init`) — акаунт і картка
+не потрібні. Порт MinIO **не опублікований**: картинки браузер тягне
+через nginx за `/media/...` (`S3_PUBLIC_URL=http://localhost/media/storefront-media`),
+тож політика "назовні тільки порт 80" лишається чинною. Через `/media/`
+доступне лише читання (`GET`/`HEAD`); пише у сховище виключно бекенд.
+
+### Що тут захищено
+
+1. **Тип файлу визначається за вмістом**, а не за `Content-Type`: його
+   присилає клієнт, тобто скрипт легко віддати як `image/png`. Дивимось
+   на магічні байти (JPEG/PNG/WebP/GIF); перевірено реальним запитом.
+2. **Ім'я файлу від користувача не використовується** — ключ
+   генерується: `products/РІК/МІСЯЦЬ/uuid.ext`. Інакше `../../x` або
+   перезапис чужого файлу однаковим іменем.
+3. **Ліміт 5 МБ** на рівні multer — запит обривається, не дочитуючись
+   (відповідь `400`). Файл тримається в пам'яті, на диск не пишеться.
+4. **nginx** за замовчуванням відсікає тіло понад 1 МБ відповіддю `413`;
+   для `/api/` стоїть `client_max_body_size 6m`, інакше завантаження
+   ніколи б не дійшло до бекенду.
+5. Файл спершу кладеться в сховище, потім пишеться рядок у базу; якщо
+   запис не вдався — файл прибирається (без сиріт). Видалення навпаки:
+   спершу рядок, потім файл (осиротілий файл — марні байти, осиротілий
+   запис — битий URL в UI).
+6. Файли віддаються з `Cache-Control: public, max-age=31536000, immutable`
+   (ключ унікальний, вміст за ним не змінюється). Побічний ефект: після
+   видалення зображення браузер, що його вже завантажував, ще може
+   показати кешовану копію — на сховищі її вже немає.
+
+Без `S3_*` змінних сховище вимкнене: завантаження відповідає `503`, решта
+бекенду працює як і раніше.
+
+### Перехід на справжній Cloudflare R2
+
+Код міняти не треба — тільки змінні середовища. Скопіюйте
+[`.env.example`](../.env.example) у `.env` у корені репозиторію (він в
+`.gitignore`, ключі не потраплять у git) і підставте значення:
+
+```
+S3_ENDPOINT=https://<account_id>.r2.cloudflarestorage.com
+S3_BUCKET=<назва бакета>
+S3_ACCESS_KEY_ID=<з панелі R2>
+S3_SECRET_ACCESS_KEY=<з панелі R2>
+S3_PUBLIC_URL=https://pub-<hash>.r2.dev
+```
+
+Кроки в панелі Cloudflare: R2 → Create bucket → Settings → Public
+access увімкнути (r2.dev-піддомен або власний домен) → Manage API
+Tokens → токен з правами Object Read & Write. Далі
+`docker compose up -d` — compose підхопить `.env` замість дефолтів MinIO.
+Контейнери `minio`/`minio-init` тоді просто не використовуються.
 
 ## Тести
 

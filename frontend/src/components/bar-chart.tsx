@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatNumber } from "@/lib/format";
 
 export type BarPoint = { label: string; value: number };
 
@@ -12,14 +13,6 @@ type Props = {
   caption: string;
   valueHeader: string;
 };
-
-// Навмисно без Intl: Node у контейнері й браузер по-різному форматують UAH
-// ("грн" проти "₴", "1 тис." проти "1,0 тис."), і це ламало гідратацію.
-function formatNumber(n: number) {
-  const [int, frac] = n.toFixed(2).replace(/(\.\d*?)0+$/, "$1").replace(/\.$/, "").split(".");
-  const grouped = int.replace(/\B(?=(\d{3})+(?!\d))/g, "\u00A0");
-  return frac ? `${grouped},${frac}` : grouped;
-}
 
 function formatCurrency(v: number) {
   if (v >= 1000) return `${formatNumber(Math.round(v / 100) / 10)} тис. ₴`;

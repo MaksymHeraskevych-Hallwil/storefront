@@ -30,7 +30,8 @@ flowchart LR
     Nginx -->|"/api/*"| API["REST API<br/>Express + Zod + JWT"]
     Nginx -->|"/"| Admin["Admin Panel<br/>Next.js + shadcn/ui"]
     API --> DB[("PostgreSQL<br/>через Prisma Client")]
-    API -.->|"Етап 7"| Storage[("Object Storage<br/>S3-сумісне")]
+    API -->|"S3 API"| Storage[("Object Storage<br/>R2 / MinIO")]
+    Nginx -->|"/media/*"| Storage
     API -.->|"майбутнє"| Cache[("Redis<br/>сесії / кеш")]
 ```
 
@@ -42,7 +43,7 @@ docker-мережі — `expose`, не `ports`. Підключення до ба
 
 ## 2. Модель даних
 
-### 2.1 Реалізовано (Етапи 1-6)
+### 2.1 Реалізовано (Етапи 1-7)
 
 ```mermaid
 erDiagram
@@ -86,7 +87,10 @@ erDiagram
     ProductImage {
         string id PK
         string productId FK
+        string key UK "ключ об'єкта в бакеті"
         string url
+        string mimeType
+        int size
         int position
     }
 
@@ -186,6 +190,8 @@ REST, JSON. Ролі перевіряються middleware на бекенді �
 | `GET /api/products/:id` | Товар з варіантами, зображеннями, кастомними полями | Staff | ✅ |
 | `PATCH /api/products/:id` | Оновити поля товару | Staff | ✅ |
 | `DELETE /api/products/:id` | Архівувати (`status: ARCHIVED`, не DELETE-рядок) | **Admin** | ✅ |
+| `POST /api/products/:id/images` | Завантажити зображення в сховище (multipart, `file`, до 5 МБ) | Staff | ✅ |
+| `DELETE /api/products/:id/images/:imageId` | Видалити зображення (запис і файл) | Staff | ✅ |
 | `POST /api/products/:id/variants` | Додати варіант | Staff | ✅ |
 | `PATCH /api/products/:id/variants/:variantId` | Оновити варіант | Staff | ✅ |
 | `DELETE /api/products/:id/variants/:variantId` | Видалити варіант | Staff | ✅ |

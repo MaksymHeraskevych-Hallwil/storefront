@@ -23,7 +23,11 @@ export const listProducts = async (req: Request, res: Response) => {
       skip: (page - 1) * limit,
       take: limit,
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { variants: true } } },
+      include: {
+        _count: { select: { variants: true } },
+        // Мініатюра в списку — лише перше зображення, не всі.
+        images: { orderBy: { position: 'asc' }, take: 1, select: { url: true } },
+      },
     }),
     prisma.product.count({ where }),
   ])

@@ -21,6 +21,7 @@ type Product = {
   status: "DRAFT" | "ACTIVE" | "ARCHIVED";
   createdAt: string;
   _count: { variants: number };
+  images: { url: string }[];
 };
 
 type ProductListResponse = {
@@ -125,11 +126,20 @@ export default async function ProductsPage({
             {products.map((product) => (
               <TableRow key={product.id}>
                 <TableCell>
-                  <Link href={`/products/${product.id}`} className="flex flex-col hover:underline">
-                    <span className="font-medium">{product.title}</span>
-                    {product.vendor && (
-                      <span className="text-xs text-muted-foreground">{product.vendor}</span>
-                    )}
+                  <Link href={`/products/${product.id}`} className="flex items-center gap-3 hover:underline">
+                    <span className="size-10 shrink-0 overflow-hidden rounded-md border bg-muted">
+                      {product.images[0] && (
+                        // Звичайний <img>: URL веде у зовнішнє сховище (див. images-manager.tsx).
+                        // eslint-disable-next-line @next/next/no-img-element
+                        <img src={product.images[0].url} alt="" className="size-full object-cover" />
+                      )}
+                    </span>
+                    <span className="flex flex-col">
+                      <span className="font-medium">{product.title}</span>
+                      {product.vendor && (
+                        <span className="text-xs text-muted-foreground">{product.vendor}</span>
+                      )}
+                    </span>
                   </Link>
                 </TableCell>
                 <TableCell>
